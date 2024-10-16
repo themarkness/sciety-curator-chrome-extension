@@ -1,0 +1,23 @@
+{
+    "manifest_version": 3,
+    "name": "Sciety Curator Tools",
+    "version": "1.0",
+    "description": "Sciety lets you add preprints to your Sciety lists from anywhere on the web, including BioRxiv, MedRxiv and more.",
+    "icons": {
+        "16": "images/sciety-logo-16.png",
+        "48": "images/sciety-logo-48.png",
+        "128": "images/sciety-logo-128.png"
+    },
+    "permissions": ["storage", "activeTab", "scripting"],
+    "action": {
+      "default_popup": "popup.html"
+    },
+    "content_scripts": [
+      {
+        "matches": ["<all_urls>"],
+        "js": ["contentScript.js"],
+        "css": ["styles.css"]
+      }
+    ]
+  }
+  
