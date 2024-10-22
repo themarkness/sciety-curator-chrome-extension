@@ -1,40 +1,62 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Sciety Links</title>
+    <title>Sciety Curator Tools</title>
     <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@700&family=Source+Sans+Pro&display=swap" rel="stylesheet">
     <style>
       body {
         font-family: 'Source Sans Pro', sans-serif;
-        width: 300px;
+        width: 400px;
         padding: 10px;
         background-color: #fff;
         color: #222;
+        border-radius:6px;
       }
       h1 {
         font-family: 'Ubuntu', sans-serif;
         font-weight: 700;
-        color: #ce471a;
+        color: #51504f;
         margin-bottom: 20px;
       }
       ul {
         list-style-type: none;
         padding: 0;
       }
-      li {
+      .link-item {
         margin-bottom: 10px;
         padding: 10px;
         background-color: #f5f5f5;
         border-radius: 5px;
       }
-      a {
+      .link-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .original-link {
         color: #ce471a;
         text-decoration: none;
+        flex-grow: 1;
+        margin-right: 10px;
       }
-      a:hover {
+      .original-link:hover {
         text-decoration: underline;
       }
-      button {
+      .sciety-button {
+        font-family: 'Source Sans Pro', sans-serif;
+        background-color: #b33d15;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 50px;
+        cursor: pointer;
+        font-size: 0.8em;
+        white-space: nowrap;
+      }
+      .sciety-button:hover {
+        background-color: #b33d15;
+      }
+      #clearButton {
         font-family: 'Source Sans Pro', sans-serif;
         background-color: #ce471a;
         color: white;
@@ -45,14 +67,13 @@
         cursor: pointer;
         font-weight: bold;
       }
-      button:hover {
+      #clearButton:hover {
         background-color: #b33d15;
       }
     </style>
   </head>
   <body>
-    <h1>Sciety Curator</h1>
-    <p>Saved preprints will appear here. Click on a link to visit the preprint on Sciety</p>
+    <h1>Sciety Curator Tools</h1>
     <ul id="linksList"></ul>
     <button id="clearButton">Clear All</button>
     <script src="popup.js"></script>
