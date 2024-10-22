@@ -28,7 +28,7 @@ function createButton(isBioRxiv) {
   }
 
   const logo = document.createElement('img');
-  logo.src = 'https://github.com/sciety/sciety/blob/main/static/images/sciety-logo.jpg?raw=true';
+  logo.src = 'images/sciety-logo-circle.jpg';
   logo.alt = 'Sciety Logo';
   logo.style.width = isBioRxiv ? '30px' : '20px';
   logo.style.marginRight = '10px';
