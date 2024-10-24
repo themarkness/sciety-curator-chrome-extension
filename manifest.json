@@ -22,7 +22,8 @@
       {
         "matches": [
           "https://scholar.google.com/*",
-          "https://www.biorxiv.org/*"
+          "https://www.biorxiv.org/*",
+          "https://www.medrxiv.org/*"
         ],
         "js": ["contentScript.js"]
       }

@@ -1,7 +1,8 @@
-console.log("Checking URL for biorxiv or Google Scholar content...");
+console.log("Checking URL for biorxiv, medrxiv, or Google Scholar content...");
 
 const currentUrl = window.location.href;
 const bioRxivPattern = 'https://www.biorxiv.org/content/10.1101/';
+const medRxivPattern = 'https://www.medrxiv.org/content/10.1101/';
 const googleScholarPattern = 'https://scholar.google.com/scholar';
 
 // Add this list of preprint server domains at the top of your file
@@ -24,7 +25,7 @@ function isPreprintUrl(url) {
   return preprintDomains.some(domain => url.includes(domain));
 }
 
-function createButton(isBioRxiv, evaluationCount) {
+function createButton(isRxiv, evaluationCount) {
   const button = document.createElement('button');
   button.id = 'overlayButton';
   button.style.display = 'flex';
@@ -38,7 +39,7 @@ function createButton(isBioRxiv, evaluationCount) {
   button.style.cursor = 'pointer';
   button.style.zIndex = '1000';
 
-  if (isBioRxiv) {
+  if (isRxiv) {
     button.style.position = 'relative';
     button.style.marginTop = '45px';
     button.style.marginLeft = '20px';
@@ -50,7 +51,7 @@ function createButton(isBioRxiv, evaluationCount) {
   const logo = document.createElement('img');
   logo.src = 'https://github.com/sciety/sciety/blob/main/static/images/sciety-logo.jpg?raw=true';
   logo.alt = 'Sciety Logo';
-  logo.style.width = isBioRxiv ? '30px' : '20px';
+  logo.style.width = isRxiv ? '30px' : '20px';
   logo.style.marginRight = '10px';
 
   const buttonText = document.createElement('span');
@@ -126,27 +127,27 @@ async function getEvaluationCount(doi) {
   }
 }
 
-async function injectButton(isBioRxiv, doi) {
+async function injectButton(isRxiv, doi) {
   if (!document.getElementById('overlayButton')) {
     const evaluationCount = await getEvaluationCount(doi);
-    const button = createButton(isBioRxiv, evaluationCount);
+    const button = createButton(isRxiv, evaluationCount);
     addClickListener(button, doi);
 
-    if (isBioRxiv) {
+    if (isRxiv) {
       const widget = document.getElementById('cshl_widget');
       if (widget) {
         widget.parentElement.insertBefore(button, widget.nextSibling);
-        console.log("Button injected successfully on BioRxiv.");
+        console.log("Button injected successfully on BioRxiv/MedRxiv.");
       } else {
-        console.log("Widget with id 'cshl_widget' not found. Button injection failed on BioRxiv.");
+        console.log("Widget with id 'cshl_widget' not found. Button injection failed on BioRxiv/MedRxiv.");
       }
     }
   }
 }
 
-// Handle BioRxiv pages
-if (currentUrl.startsWith(bioRxivPattern)) {
-  console.log("BioRxiv URL matches, injecting button with Sciety logo...");
+// Handle BioRxiv and MedRxiv pages
+if (currentUrl.startsWith(bioRxivPattern) || currentUrl.startsWith(medRxivPattern)) {
+  console.log("BioRxiv or MedRxiv URL matches, injecting button with Sciety logo...");
   const match = currentUrl.match(/10\.1101\/(.+)$/);
   if (match) {
     const doi = match[0];
