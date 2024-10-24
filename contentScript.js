@@ -4,7 +4,27 @@ const currentUrl = window.location.href;
 const bioRxivPattern = 'https://www.biorxiv.org/content/10.1101/';
 const googleScholarPattern = 'https://scholar.google.com/scholar';
 
-function createButton(isBioRxiv) {
+// Add this list of preprint server domains at the top of your file
+const preprintDomains = [
+  'arxiv.org',
+  'biorxiv.org',
+  'medrxiv.org',
+  'chemrxiv.org',
+  'psyarxiv.org',
+  'osf.io/preprints',
+  'preprints.org',
+  'ssrn.com',
+  'researchsquare.com',
+  'zenodo.org'
+  // Add more preprint server domains as needed
+];
+
+// Function to check if a URL is from a preprint server
+function isPreprintUrl(url) {
+  return preprintDomains.some(domain => url.includes(domain));
+}
+
+function createButton(isBioRxiv, evaluationCount) {
   const button = document.createElement('button');
   button.id = 'overlayButton';
   button.style.display = 'flex';
@@ -28,7 +48,7 @@ function createButton(isBioRxiv) {
   }
 
   const logo = document.createElement('img');
-  logo.src = 'https://github.com/themarkness/sciety-curator-chrome-extension/blob/c2e15a12bab96fada96307e8a35e81a6ac6cdc28/images/sciety-logo-circle.png?raw=true';
+  logo.src = 'https://github.com/sciety/sciety/blob/main/static/images/sciety-logo.jpg?raw=true';
   logo.alt = 'Sciety Logo';
   logo.style.width = isBioRxiv ? '30px' : '20px';
   logo.style.marginRight = '10px';
@@ -37,63 +57,151 @@ function createButton(isBioRxiv) {
   buttonText.textContent = 'Add to Sciety';
   buttonText.style.color = '#fff';
 
+  const evaluationBadge = document.createElement('span');
+  evaluationBadge.textContent = evaluationCount;
+  evaluationBadge.style.backgroundColor = '#fff';
+  evaluationBadge.style.color = '#ce471a';
+  evaluationBadge.style.borderRadius = '50%';
+  evaluationBadge.style.padding = '2px 6px';
+  evaluationBadge.style.marginLeft = '10px';
+  evaluationBadge.style.fontSize = '12px';
+
   button.appendChild(logo);
   button.appendChild(buttonText);
+  button.appendChild(evaluationBadge);
 
   return button;
 }
 
-function addClickListener(button) {
+function addClickListener(button, doi) {
   button.addEventListener('click', () => {
-    const pageUrl = window.location.href;
-    const pageTitle = document.title;
+    if (doi) {
+      const scietyUrl = `https://sciety.org/articles/activity/${doi}`;
+      chrome.storage.local.get("links", (result) => {
+        let links = result.links || [];
+        links.push({ title: document.title, url: scietyUrl, doi: doi });
+        chrome.storage.local.set({ links }, () => {
+          alert('Article saved to your list!');
+        });
+      });
+    } else {
+      alert('Unable to save this article. No DOI found.');
+    }
+  });
+}
 
-    chrome.storage.local.get("links", (result) => {
-      let links = result.links || [];
-      links.push({ title: pageTitle, url: pageUrl });
-      chrome.storage.local.set({ links }, () => {
-        alert('Page saved to your list!');
+async function getEvaluationCount(doi) {
+  try {
+    const scietyUrl = `https://sciety.org/articles/activity/${doi}`;
+    const response = await new Promise((resolve, reject) => {
+      chrome.runtime.sendMessage({action: "fetchScietyData", url: scietyUrl}, response => {
+        if (chrome.runtime.lastError) {
+          reject(chrome.runtime.lastError);
+        } else {
+          resolve(response);
+        }
       });
     });
-  });
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(response.data, 'text/html');
+    const activityItems = doc.querySelectorAll('.activity-feed__item');
+    
+    let evaluationCount = 0;
+    let versionCount = 0;
+
+    activityItems.forEach(item => {
+      if (item.querySelector('.activity-feed__item__title a[href*="biorxiv.org"]')) {
+        versionCount++;
+      } else {
+        evaluationCount++;
+      }
+    });
+
+    console.log(`Evaluations: ${evaluationCount}, Versions: ${versionCount}`);
+    return evaluationCount;
+  } catch (error) {
+    console.error('Error fetching evaluation count:', error);
+    return 0;
+  }
+}
+
+async function injectButton(isBioRxiv, doi) {
+  if (!document.getElementById('overlayButton')) {
+    const evaluationCount = await getEvaluationCount(doi);
+    const button = createButton(isBioRxiv, evaluationCount);
+    addClickListener(button, doi);
+
+    if (isBioRxiv) {
+      const widget = document.getElementById('cshl_widget');
+      if (widget) {
+        widget.parentElement.insertBefore(button, widget.nextSibling);
+        console.log("Button injected successfully on BioRxiv.");
+      } else {
+        console.log("Widget with id 'cshl_widget' not found. Button injection failed on BioRxiv.");
+      }
+    }
+  }
 }
 
 // Handle BioRxiv pages
 if (currentUrl.startsWith(bioRxivPattern)) {
   console.log("BioRxiv URL matches, injecting button with Sciety logo...");
-
-  if (!document.getElementById('overlayButton')) {
-    const button = createButton(true);
-    addClickListener(button);
-
-    const widget = document.getElementById('cshl_widget');
-    if (widget) {
-      widget.parentElement.insertBefore(button, widget.nextSibling);
-      console.log("Button injected successfully on BioRxiv.");
-    } else {
-      console.log("Widget with id 'cshl_widget' not found. Button injection failed on BioRxiv.");
-    }
+  const match = currentUrl.match(/10\.1101\/(.+)$/);
+  if (match) {
+    const doi = match[0];
+    injectButton(true, doi);
   }
 }
 
 // Handle Google Scholar pages
 if (currentUrl.startsWith(googleScholarPattern)) {
-  console.log("Google Scholar URL matches, injecting buttons for each result...");
-
+  console.log("Google Scholar URL matches, checking for preprint results...");
   const searchResults = document.querySelectorAll('.gs_r');
-  searchResults.forEach((result, index) => {
-    if (!result.querySelector('#overlayButton')) {
-      const button = createButton(false);
-      button.id = `overlayButton_${index}`;
-      addClickListener(button);
+  console.log(`Number of search results found: ${searchResults.length}`);
 
+  searchResults.forEach(async (result, index) => {
+    console.log(`Processing result ${index + 1}`);
+    if (!result.querySelector('#overlayButton')) {
       const titleElement = result.querySelector('.gs_rt');
       if (titleElement) {
-        titleElement.parentElement.insertBefore(button, titleElement.nextSibling);
-        console.log(`Button injected successfully for result ${index} on Google Scholar.`);
+        console.log(`Title element found for result ${index + 1}`);
+        const link = titleElement.querySelector('a');
+        if (link) {
+          const href = link.getAttribute('href');
+          console.log(`Link found for result ${index + 1}: ${href}`);
+          
+          if (isPreprintUrl(href)) {
+            console.log(`Preprint detected for result ${index + 1}`);
+            const doiMatch = href.match(/10\.\d{4,9}\/[-._;()/:A-Z0-9]+/i);
+            if (doiMatch) {
+              const doi = doiMatch[0];
+              console.log(`DOI found: ${doi}`);
+              try {
+                const evaluationCount = await getEvaluationCount(doi);
+                console.log(`Evaluation count for ${doi}: ${evaluationCount}`);
+                const button = createButton(false, evaluationCount);
+                button.id = `overlayButton_${index}`;
+                addClickListener(button, doi);
+                titleElement.parentElement.insertBefore(button, titleElement.nextSibling);
+                console.log(`Button injected for preprint result ${index + 1} on Google Scholar.`);
+              } catch (error) {
+                console.error(`Error processing result ${index + 1}:`, error);
+              }
+            } else {
+              console.log(`No DOI found for preprint result ${index + 1}`);
+            }
+          } else {
+            console.log(`Result ${index + 1} is not a preprint, skipping button injection.`);
+          }
+        } else {
+          console.log(`No link found for result ${index + 1}`);
+        }
       } else {
-        console.log(`Title element not found for result ${index}. Button injection failed.`);
+        console.log(`No title element found for result ${index + 1}`);
       }
+    } else {
+      console.log(`Button already exists for result ${index + 1}`);
     }
   });
 }
